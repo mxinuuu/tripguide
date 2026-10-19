@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripGuide AI Pro - 글로벌 초맞춤 여행 가이드 & 일정 플래너</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #818cf8;
+            color: #818cf8;
+            font-weight: 600;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col custom-scrollbar">
+
+    <header class="border-b border-slate-800 bg-slate-950/90 sticky top-0 z-50 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-extrabold shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-compass"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">TripGuide AI Pro</h1>
+                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">v4.0 Global</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">전 세계 45개+ 글로벌 추천 여행지 빅데이터 매칭</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button onclick="openSavedModal()" class="relative flex items-center gap-2 text-xs bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-800 transition-all">
+                    <i class="fa-solid fa-bookmark text-amber-400"></i>
+                    <span>위시리스트</span>
+                    <span id="savedCountBadge" class="bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
+                </button>
+                <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="dbCounterText">45개 데이터베이스 준비됨</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Sidebar / Filter Panel -->
+        <aside class="lg:col-span-4 space-y-6">
+            <div class="glass-panel rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-400"></i> AI 초맞춤 실시간 필터
+                    </h2>
+                    <button onclick="resetFilters()" class="text-xs text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> 초기화
+                    </button>
+                </div>
+
+                <form id="recommendForm" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                    
+                    <!-- Search Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">🔍 여행지 / 검색 키워드</label>
+                        <div class="relative">
+                            <input type="text" id="customKeywords" onkeyup="handleKeyupSearch()" placeholder="예: 야경, 온천, 온구, 오로라, 사막, 리조트, 스노클링, 가성비, 유럽, 미국" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                        </div>
+                        <!-- Quick Keyword Tags -->
+                        <div class="flex flex-wrap gap-1.5 mt-2.5">
+                            <button type="button" onclick="setKeyword('온천')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#온천</button>
+                            <button type="button" onclick="setKeyword('야경')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#야경</button>
+                            <button type="button" onclick="setKeyword('오로라')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#오로라</button>
+                            <button type="button" onclick="setKeyword('사막')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#사막</button>
+                            <button type="button" onclick="setKeyword('스노클링')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#스노클링</button>
+                            <button type="button" onclick="setKeyword('신혼여행')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#신혼여행</button>
+                            <button type="button" onclick="setKeyword('가성비')" class="text-[10px] bg-slate-900 hover:bg-indigo-900/40 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md">#가성비</button>
+                        </div>
+                    </div>
+
+                    <!-- 1. Companion Type -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">1. 동행 형태</label>
+                        <div class="grid grid-cols-2 gap-2" id="companionContainer">
+                            <button type="button" onclick="selectCompanion('all', this)" class="companion-btn border border-indigo-500/50 bg-indigo-600/20 text-indigo-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🌐 전체 보기
+                            </button>
+                            <button type="button" onclick="selectCompanion('solo', this)" class="companion-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🧍 혼자 (솔로)
+                            </button>
+                            <button type="button" onclick="selectCompanion('couple', this)" class="companion-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                💑 연인/커플
+                            </button>
+                            <button type="button" onclick="selectCompanion('family', this)" class="companion-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                👨‍👩‍👧‍👦 가족/부모님
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. Vibe/Theme Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">2. 여행 테마 (다중 선택)</label>
+                        <div class="grid grid-cols-2 gap-2" id="vibeContainer">
+                            <button type="button" onclick="toggleVibe('Culture', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🏛️ 문화/역사
+                            </button>
+                            <button type="button" onclick="toggleVibe('Nature', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🌲 자연/힐링
+                            </button>
+                            <button type="button" onclick="toggleVibe('City', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🏙️ 도시/쇼핑
+                            </button>
+                            <button type="button" onclick="toggleVibe('Food', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🍕 미식/맛집
+                            </button>
+                            <button type="button" onclick="toggleVibe('Resort', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🏝️ 휴양/휴식
+                            </button>
+                            <button type="button" onclick="toggleVibe('Activity', this)" class="vibe-btn border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                🏄 액티비티
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 3. Duration Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">3. 예상 일정 범위</label>
+                        <select id="durationSelect" onchange="renderDestinations()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors">
+                            <option value="all">전체 일정 범위</option>
+                            <option value="short">당일 ~ 2박 3일 (국내 및 근교)</option>
+                            <option value="medium">3박 ~ 5박 (아시아 / 근거리)</option>
+                            <option value="long">1주일 이상 (유럽, 미주, 대양주 등)</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold rounded-xl text-xs sm:text-sm shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI 실시간 매칭 검색 실행
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <section class="lg:col-span-8 space-y-6">
+            
+            <!-- Filter Bar & Region Categories Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span>추천 목적지 탐색</span>
+                        <span id="resultBadge" class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-indigo-500/30">0개 검색됨</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">대륙별 및 맞춤 키워드 조건에 일치하는 결과입니다.</p>
+                </div>
+                
+                <div class="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                    <button onclick="filterCategory('all')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-colors">전체</button>
+                    <button onclick="filterCategory('korea')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">국내</button>
+                    <button onclick="filterCategory('asia')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">아시아</button>
+                    <button onclick="filterCategory('europe')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">유럽</button>
+                    <button onclick="filterCategory('americas')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">미주/대양주</button>
+                    <button onclick="filterCategory('others')" class="cat-filter-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">중동/기타</button>
+                </div>
+            </div>
+
+            <!-- Destinations Cards Container -->
+            <div id="destinationsList" class="space-y-6">
+                <!-- Dynamically Rendered Cards -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Detailed Destination Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700/80 w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+            <div id="modalHeader" class="relative h-48 sm:h-64 bg-slate-800 flex items-end p-6 bg-cover bg-center">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
+                <button onclick="closeModal('detailModal')" class="absolute top-4 right-4 w-9 h-9 bg-slate-900/80 text-slate-300 hover:text-white rounded-full flex items-center justify-center backdrop-blur-md border border-slate-700 transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="relative z-10 w-full">
+                    <div id="modalVibes" class="flex flex-wrap gap-1.5 mb-2"></div>
+                    <h3 id="modalTitle" class="text-2xl sm:text-3xl font-black text-white"></h3>
+                    <p id="modalSubtitle" class="text-xs sm:text-sm text-slate-300 mt-1"></p>
+                </div>
+            </div>
+
+            <!-- Modal Tabs -->
+            <div class="flex border-b border-slate-800 bg-slate-950 px-6 text-xs text-slate-400 gap-6">
+                <button onclick="switchModalTab('itinerary')" id="tabItinerary" class="tab-btn py-3 active flex items-center gap-1.5">
+                    <i class="fa-solid fa-calendar-days"></i> 추천 일정표
+                </button>
+                <button onclick="switchModalTab('cost')" id="tabCost" class="tab-btn py-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-calculator"></i> 예상 비용 상세
+                </button>
+                <button onclick="switchModalTab('prep')" id="tabPrep" class="tab-btn py-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clipboard-check"></i> 대표 음식 & 팁
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6 text-slate-300 text-xs leading-relaxed">
+                <div id="tabContentItinerary" class="space-y-4">
+                    <p class="text-slate-400">현지 추천 필수 핵심 동선 코스입니다.</p>
+                    <div id="itineraryDays" class="space-y-4"></div>
+                </div>
+
+                <div id="tabContentCost" class="hidden space-y-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <h4 class="font-bold text-white mb-2 text-sm">예상 1인 비용 산출 내역</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center mb-4">
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-400 block text-[10px]">✈️ 왕복 항공/교통</span>
+                                <span id="costFlight" class="text-indigo-400 font-bold sm:text-sm">0원</span>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-400 block text-[10px]">🏨 평균 숙박비</span>
+                                <span id="costHotel" class="text-indigo-400 font-bold sm:text-sm">0원</span>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                <span class="text-slate-400 block text-[10px]">🍜 일일 예상 식비</span>
+                                <span id="costFood" class="text-indigo-400 font-bold sm:text-sm">0원</span>
+                            </div>
+                            <div class="bg-indigo-950/40 p-3 rounded-lg border border-indigo-800/50">
+                                <span class="text-indigo-300 block text-[10px] font-semibold">💰 총 예상비용</span>
+                                <span id="costTotal" class="text-pink-400 font-extrabold sm:text-sm">0원</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tabContentPrep" class="hidden space-y-4">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <h4 class="font-bold text-amber-400 mb-2 flex items-center gap-1.5 text-xs">
+                                <i class="fa-solid fa-utensils"></i> 필수 대표 먹거리
+                            </h4>
+                            <ul id="foodList" class="list-disc list-inside space-y-1 text-slate-300"></ul>
+                        </div>
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <h4 class="font-bold text-emerald-400 mb-2 flex items-center gap-1.5 text-xs">
+                                <i class="fa-solid fa-passport"></i> 여행 체크리스트
+                            </h4>
+                            <ul id="checklistItems" class="space-y-1 text-slate-300"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 p-4 bg-slate-950 flex justify-between items-center">
+                <span class="text-[11px] text-slate-500">TripGuide AI Global Engine • 최신 매칭 시스템</span>
+                <button onclick="closeModal('detailModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs transition-colors">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Wishlist Modal -->
+    <div id="savedModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-bookmark text-amber-400"></i> 저장한 여행지 (위시리스트)
+                </h3>
+                <button onclick="closeModal('savedModal')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="savedListContainer" class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar"></div>
+            <div class="flex justify-end pt-2">
+                <button onclick="closeModal('savedModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs transition-colors">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-1">
+            <p>© 2026 TripGuide AI Pro Global. All rights reserved. | 초맞춤 빅데이터 실시간 여행 알고리즘</p>
+        </div>
+    </footer>
+
+    <script>
+        // Massive Database containing 45 global destinations with fine-grained tags & keywords
+        const destinationDatabase = [
+            // --- Asia / 근거리 ---
+            {
+                id: 'kyoto',
+                region: 'asia',
+                duration: 'medium',
+                name: '교토 (Kyoto), 일본',
+                tagline: '천년의 역사가 숨쉬는 고요한 전통과 문화의 도시',
+                vibes: ['Culture', 'Nature'],
+                keywords: ['교토', '일본', '문화', '역사', '절', '신사', '단풍', '벚꽃', '고즈넉', '전통', '가이세키', '아시아'],
+                why: '고즈넉한 목조건축물과 대나무 숲, 정교한 온천 및 전통 미식 투어로 여유롭고 문화적인 감성을 만끽할 수 있습니다.',
+                spots: [
+                    { name: '후시미 이나리 신사', desc: '수천 개의 붉은 토리이가 줄지어 서 있는 몽환적인 산책로' },
+                    { name: '아라시야마 대나무 숲', desc: '높이 솟은 대나무 숲길 사이로 햇살이 스며드는 대표 힐링 코스' }
+                ],
+                flightTime: '직항 약 1시간 40분 (간사이)',
+                currency: 'JPY (100엔 ≈ 900원)',
+                bestSeason: '3~5월 (벚꽃), 10~11월 (단풍)',
+                image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '35만원', hotel: '15만원/박', food: '6만원/일', total: '약 85만원' },
+                foods: ['교토 가이세키 정식', '말차 아이스크림 & 당고', '유두부 전골'],
+                checklist: ['110V 어댑터', '교통카드(이코카/수이카)', 'e-SIM'],
+                itinerary: [
+                    { day: 1, title: '전통 탐방', desc: '간사이 공항 도착 ➔ 교토 이동 ➔ 기온 거리 산책 및 청수사 석양 감상' },
+                    { day: 2, title: '자연과 신사', desc: '후시미 이나리 신사 ➔ 아라시야마 대나무 숲 & 텐류지 ➔ 료칸 온천' },
+                    { day: 3, title: '쇼핑 및 귀국', desc: '니시키 시장 맛집 투어 ➔ 교토역 기념품 쇼핑 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'tokyo',
+                region: 'asia',
+                duration: 'medium',
+                name: '도쿄 (Tokyo), 일본',
+                tagline: '화려한 미래 도시의 야경과 쇼핑, 미식의 중심지',
+                vibes: ['City', 'Food', 'Culture'],
+                keywords: ['도쿄', '일본', '도시', '쇼핑', '야경', '미식', '라멘', '디즈니랜드', '시부야', '신주쿠', '덕질', '아시아'],
+                why: '화려한 마천루의 야경, 최첨단 쇼핑몰, 세계적인 레스토랑부터 골목길 라멘까지 도시 여행의 진수를 경험할 수 있습니다.',
+                spots: [
+                    { name: '시부야 스카이', desc: '도쿄의 전경과 스크램블 교차로를 한눈에 담는 360도 야경 스폿' },
+                    { name: '아사쿠사 센소지', desc: '도쿄에서 가장 오래된 유서 깊은 사찰과 전통 상점가' }
+                ],
+                flightTime: '직항 약 2시간 10분',
+                currency: 'JPY (100엔 ≈ 900원)',
+                bestSeason: '10~12월, 3~5월',
+                image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '38만원', hotel: '18만원/박', food: '7만원/일', total: '약 95만원' },
+                foods: ['차슈 돈코츠 라멘', '신선한 스시', '규카츠 & 디저트'],
+                checklist: ['도쿄 지하철 패스', '110V 어댑터', '포켓 와이파이'],
+                itinerary: [
+                    { day: 1, title: '도심 속 야경', desc: '도쿄 도착 ➔ 신주쿠 탐방 ➔ 시부야 스카이 석양 및 야경' },
+                    { day: 2, title: '전통과 서브컬처', desc: '아사쿠사 센소지 ➔ 아키하바라 쇼핑 ➔ 긴자 명품거리' },
+                    { day: 3, title: '힐링과 귀국', desc: '메이지 신궁 산책 ➔ 하라주쿠 & 오모테산도 카페거리 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'osaka',
+                region: 'asia',
+                duration: 'medium',
+                name: '오사카 (Osaka), 일본',
+                tagline: '식도락의 천국! 활기찬 야시장과 온천 여행',
+                vibes: ['Food', 'City', 'Activity'],
+                keywords: ['오사카', '일본', '맛집', '타코야끼', '글리코상', '도톤보리', '유니버설', '온천', '먹방', '쇼핑', '아시아'],
+                why: '도톤보리의 활기찬 길거리 음식과 미식, 유니버설 스튜디오의 즐거움이 가득하여 친구나 커플 여행에 최고입니다.',
+                spots: [
+                    { name: '도톤보리 & 글리코상', desc: '화려한 네온사인 아래에서 즐기는 대표 식도락 거리' },
+                    { name: '유니버설 스튜디오 재팬', desc: '해리포터와 닌텐도 월드를 직접 체험하는 테마파크' }
+                ],
+                flightTime: '직항 약 1시간 50분',
+                currency: 'JPY (100엔 ≈ 900원)',
+                bestSeason: '연중 무휴 (봄 벚꽃, 가을 단풍 강추)',
+                image: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '32만원', hotel: '14만원/박', food: '6만원/일', total: '약 80만원' },
+                foods: ['갓 구운 타코야끼', '오코노미야끼', '쿠시카츠(꼬치튀김)'],
+                checklist: ['USJ 익스프레스 티켓', '주유패스', '엔화 환전'],
+                itinerary: [
+                    { day: 1, title: '도톤보리 먹방', desc: '오사카 도착 ➔ 도톤보리 스트리트 푸드 투어 ➔ 우메다 공중정원 야경' },
+                    { day: 2, title: '테마파크 모험', desc: '유니버설 스튜디오 재팬 하루 종일 즐기기' },
+                    { day: 3, title: '역사와 쇼핑', desc: '오사카성 산책 ➔ 신사이바시 쇼핑 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'fukuoka',
+                region: 'asia',
+                duration: 'short',
+                name: '후쿠오카 & 유후인, 일본',
+                tagline: '따뜻한 온천 료칸과 맛있는 라멘, 부담 없는 단거리 여행',
+                vibes: ['Resort', 'Food', 'Nature'],
+                keywords: ['후쿠오카', '유후인', '온천', '료칸', '일본', '라멘', '야타이', '힐링', '가깝', '온천욕', '가성비', '아시아'],
+                why: '비행기로 1시간 남짓으로 매우 가까우며, 유후인 료칸 온천욕과 후쿠오카 야타이 포장마차 거리를 즐기기에 완벽합니다.',
+                spots: [
+                    { name: '유후인 온천 마을', desc: '아기자기한 긴린코 호수와 온천 료칸에서 즐기는 완벽한 휴식' },
+                    { name: '나카스 야타이 거리', desc: '강변을 따라 이어진 운치 있는 일본식 포장마차 음식 거리' }
+                ],
+                flightTime: '직항 약 1시간 15분',
+                currency: 'JPY (100엔 ≈ 900원)',
+                bestSeason: '11월~3월 (온천 즐기기 최적)',
+                image: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '25만원', hotel: '13만원/박', food: '5만원/일', total: '약 65만원' },
+                foods: ['돈코츠 하카타 라멘', '모츠나베(곱창전골)', '유후인 고로케'],
+                checklist: ['산큐패스 또는 버스 예약', '온천용 개인 타월', 'e-SIM'],
+                itinerary: [
+                    { day: 1, title: '후쿠오카 미식', desc: '후쿠오카 도착 ➔ 텐진 쇼핑 ➔ 나카스 강변 야타이에서 포장마차 즐기기' },
+                    { day: 2, title: '유후인 온천 힐링', desc: '유후인 이동 ➔ 긴린코 호수 산책 ➔ 료칸 가이세키 저녁 & 온천욕' },
+                    { day: 3, title: '카페와 쇼핑', desc: '유후인 거리 산책 ➔ 후쿠오카 이동 ➔ 캐널시티 쇼핑 후 귀국' }
+                ]
+            },
+            {
+                id: 'sapporo',
+                region: 'asia',
+                duration: 'medium',
+                name: '삿포로 & 홋카이도, 일본',
+                tagline: '환상적인 설경과 삿포로 맥주, 온천과 싱싱한 게 요리',
+                vibes: ['Nature', 'Food', 'Resort'],
+                keywords: ['삿포로', '홋카이도', '눈', '설경', '스키', '온천', '맥주', '대게', '양고기', '징기스칸', '오타루', '아시아'],
+                why: '겨울철 눈부신 설경과 오타루 운하, 따뜻한 온천욕 및 싱싱한 해산물과 맥주 박물관 탐방을 함께 즐길 수 있습니다.',
+                spots: [
+                    { name: '오타루 운하', desc: '옛 가스등과 창고가 어우러져 로맨틱한 분위기를 자아내는 야경 운하' },
+                    { name: '비에이 청의 호수 & 흰수염 폭포', desc: '신비로운 에메랄드빛 호수와 겨울철 환상적인 자작나무 설경' }
+                ],
+                flightTime: '직항 약 2시간 40분',
+                currency: 'JPY (100엔 ≈ 900원)',
+                bestSeason: '12월~2월 (축제 & 설경), 7~8월 (라벤더)',
+                image: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '42만원', hotel: '16만원/박', food: '7만원/일', total: '약 105만원' },
+                foods: ['징기스칸 양고기 구이', '홋카이도 스프카레', '신선한 게 요리 & 맥주'],
+                checklist: ['방한패딩 & 방수부츠', '아이젠', '엔화 환전'],
+                itinerary: [
+                    { day: 1, title: '삿포로 도심', desc: '삿포로 도착 ➔ 스스키노 거리 탐방 ➔ 징기스칸 양고기 저녁' },
+                    { day: 2, title: '오타루 감성', desc: '오타루 운하 ➔ 오르골당 산책 ➔ 조잔케이 온천욕' },
+                    { day: 3, title: '비에이 투어 및 귀국', desc: '비에이/후라노 일일 투어 ➔ 삿포로 맥주 박물관 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'taipei',
+                region: 'asia',
+                duration: 'medium',
+                name: '타이베이 (Taipei), 대만',
+                tagline: '화려한 야시장과 온천, 홍등이 빛나는 감성 도시',
+                vibes: ['Food', 'Culture', 'City'],
+                keywords: ['대만', '타이베이', '야시장', '버블티', '지우펀', '온천', '우육면', '센과치히로', '풍등', '가성비', '아시아'],
+                why: '스린 야시장의 다양한 주전부리, 지우펀의 야경, 베이터우 온천 등 볼거리와 먹거리가 풍성합니다.',
+                spots: [
+                    { name: '지우펀 올드스트리트', desc: '수많은 붉은 등불이 켜지는 몽환적인 옛 언덕 마을' },
+                    { name: '스린 야시장', desc: '지파이, 딤섬, 망고빙수 등 대만 식도락의 중심지' }
+                ],
+                flightTime: '직항 약 2시간 30분',
+                currency: 'TWD (1달러 ≈ 42원)',
+                bestSeason: '10월~3월 (선선한 날씨)',
+                image: 'https://images.unsplash.com/photo-1508248467877-aed3271816e8?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '30만원', hotel: '10만원/박', food: '4만원/일', total: '약 65만원' },
+                foods: ['우육면 & 딤섬(딘타이펑)', '대왕 지파이', '버블티 & 망고빙수'],
+                checklist: ['이지카드(교통카드)', '대만 지원금 신청', '우산'],
+                itinerary: [
+                    { day: 1, title: '타이베이 도심', desc: '도착 ➔ 시먼딩 산책 ➔ 타이베이 101 타워 야경 ➔ 스린 야시장' },
+                    { day: 2, title: '예스진지 투어', desc: '예류 지질공원 ➔ 스펀 천등 날리기 ➔ 지우펀 야경 감상' },
+                    { day: 3, title: '온천과 미식', desc: '베이터우 온천욕 ➔ 딤섬 맛집 ➔ 기념품(펑리수) 구매 후 귀국' }
+                ]
+            },
+            {
+                id: 'bangkok',
+                region: 'asia',
+                duration: 'medium',
+                name: '방콕 (Bangkok), 태국',
+                tagline: '화려한 왕궁과 카오산로드, 가성비 최고의 스파 & 미식',
+                vibes: ['Food', 'City', 'Resort'],
+                keywords: ['태국', '방콕', '카오산로드', '팟타이', '마사지', '야시장', '가성비', '루프탑', '수영장', '화려함', '아시아'],
+                why: '럭셔리 호캉스와 야시장 먹방, 마사지, 루프탑 바를 매우 저렴한 예산으로 만끽할 수 있는 베스트셀러 여행지입니다.',
+                spots: [
+                    { name: '카오산 로드', desc: '전 세계 배낭여행자들이 모여드는 에너지 넘치는 거리' },
+                    { name: '왓 아룬 (새벽사원)', desc: '짜오프라야 강변에 우뚝 솟은 아름다운 야경 사원' }
+                ],
+                flightTime: '직항 약 5시간 30분',
+                currency: 'THB (1바트 ≈ 38원)',
+                bestSeason: '11월~2월 (건기)',
+                image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '40만원', hotel: '9만원/박', food: '3만원/일', total: '약 75만원' },
+                foods: ['팟타이 & 푸팟퐁커리', '똠얌꿍', '망고 찰밥 & 땡모반'],
+                checklist: ['태국 바트 환전', '모기 퇴치제', '왕궁 방문용 긴 바지'],
+                itinerary: [
+                    { day: 1, title: '화려한 야경', desc: '방콕 도착 ➔ 아이콘시암 쇼핑 ➔ 왓 아룬 뷰 루프탑 바에서 저녁' },
+                    { day: 2, title: '사원과 카오산', desc: '방콕 왕궁 & 왓포 ➔ 타이 마사지 ➔ 카오산로드 야시장 탐방' },
+                    { day: 3, title: '호캉스와 쇼핑', desc: '호텔 수영장 휴식 ➔ 시암 파라곤 쇼핑 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'chiangmai',
+                region: 'asia',
+                duration: 'medium',
+                name: '치앙마이 (Chiang Mai), 태국',
+                tagline: '은은한 사원과 디지털 노마드의 성지, 평화로운 잔잔함',
+                vibes: ['Nature', 'Culture', 'Resort'],
+                keywords: ['치앙마이', '태국', '한달살기', '카페', '힐링', '사원', '야시장', '자연', '가성비', '아시아'],
+                why: '울창한 산으로 둘러싸인 아늑한 환경, 올드타운의 유서 깊은 사원과 감성 카페, 트렌디한 올드타운을 경험할 수 있습니다.',
+                spots: [
+                    { name: '도이수텝 사원', desc: '치앙마이 시내가 한눈에 내려다보이는 황금빛 산상 사원' },
+                    { name: '님만해민 감성거리', desc: '예쁜 카페와 디자이너 숍이 즐비한 트렌디한 골목' }
+                ],
+                flightTime: '직항 약 5시간 50분',
+                currency: 'THB (1바트 ≈ 38원)',
+                bestSeason: '11월~2월',
+                image: 'https://images.unsplash.com/photo-1512553353684-c7070050ab3f?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '43만원', hotel: '7만원/박', food: '2.5만원/일', total: '약 70만원' },
+                foods: ['카오소이(치앙마이 커리국수)', '사이우아(태국 북부 소시지)', '망고 스무디'],
+                checklist: ['국제운전면허증(스쿠터)', '모기기피제', '얇은 가디건'],
+                itinerary: [
+                    { day: 1, title: '올드타운 감성', desc: '치앙마이 도착 ➔ 올드타운 사원 투어 ➔ 나이트 바자 야시장' },
+                    { day: 2, title: '자연과 황금사원', desc: '도이수텝 올라가기 ➔ 님만해민 예쁜 카페 투어 ➔ 쿠킹클래스' },
+                    { day: 3, title: '마사지와 휴식', desc: '코끼리 친화 보호구역 방문 ➔ 타이 마사지 후 귀국' }
+                ]
+            },
+            {
+                id: 'phuket',
+                region: 'asia',
+                duration: 'medium',
+                name: '푸켓 (Phuket), 태국',
+                tagline: '안다만해의 진주! 럭셔리 에메랄드 해변 리조트',
+                vibes: ['Resort', 'Activity', 'Nature'],
+                keywords: ['푸켓', '태국', '휴양지', '리조트', '바다', '피피섬', '스노클링', '빠통', '신혼여행', '아시아'],
+                why: '피피섬 스노클링, 에메랄드빛 투명한 바다와 럭셔리한 해변 풀빌라 리조트에서 여유를 만끽할 수 있습니다.',
+                spots: [
+                    { name: '피피섬 (Phi Phi Islands)', desc: '깎아지른 절벽과 투명한 바다가 어우러진 세계적 해양 국립공원' },
+                    { name: '빠통 비치 & 방라로드', desc: '낮에는 해양 스포츠, 밤에는 화려한 클럽과 라이브 바가 열리는 곳' }
+                ],
+                flightTime: '직항 약 6시간 30분',
+                currency: 'THB (1바트 ≈ 38원)',
+                bestSeason: '11월~4월 (건기)',
+                image: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '52만원', hotel: '15만원/박', food: '4만원/일', total: '약 105만원' },
+                foods: ['푸켓 스타일 해산물 구이', '팟씨유', '로티(태국 팬케이크)'],
+                checklist: ['아쿠아슈즈', '스노클링 장비', '방수팩'],
+                itinerary: [
+                    { day: 1, title: '바다와 밤거리', desc: '푸켓 도착 ➔ 빠통 비치 산책 ➔ 방라로드 야경 즐기기' },
+                    { day: 2, title: '피피섬 호핑투어', desc: '스피드보트 피피섬 이동 ➔ 스노클링 & 스쿠버다이빙 ➔ 해변 석양' },
+                    { day: 3, title: '올드푸켓과 마사지', desc: '알록달록 올드푸켓 타운 산책 ➔ 고급 스파 마사지 후 공항 이동' }
+                ]
+            },
+            {
+                id: 'bali',
+                region: 'asia',
+                duration: 'long',
+                name: '발리 (Bali), 인도네시아',
+                tagline: '신들의 섬, 감성적인 풀빌라와 서핑, 요가의 성지',
+                vibes: ['Resort', 'Nature', 'Activity'],
+                keywords: ['발리', '휴양', '풀빌라', '서핑', '요가', '우붓', '비치클럽', '바다', '선셋', '신혼여행', '힐링', '아시아'],
+                why: '우붓의 초록빛 정글 뷰와 짱구의 우아한 비치클럽, 서핑 해변이 어우러져 완벽한 리조트 휴양을 제공합니다.',
+                spots: [
+                    { name: '우붓 라이스테라스', desc: '계단식 논 정경과 그네(발리스윙)를 즐기는 정글 힐링 스폿' },
+                    { name: '포테이토 헤드 비치클럽', desc: '환상적인 인도양 석양을 바라보며 음악을 즐기는 핫플레이스' }
+                ],
+                flightTime: '직항 약 7시간',
+                currency: 'IDR (1만 루피아 ≈ 850원)',
+                bestSeason: '4월~10월 (건기)',
+                image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '75만원', hotel: '18만원/박', food: '4만원/일', total: '약 150만원' },
+                foods: ['나시고랭 & 미고랭', '바비굴링(아기돼지바비큐)', '생과일 아사이볼'],
+                checklist: ['인도네시아 전자비자(e-VOA)', '국제운전면허증', '선크림'],
+                itinerary: [
+                    { day: 1, title: '비치클럽 석양', desc: '발리 도착 ➔ 스미냑 숙소 체크인 ➔ 비치클럽에서 석양 감상' },
+                    { day: 2, title: '우붓 정글 투어', desc: '우붓 라이스테라스 ➔ 발리스윙 ➔ 몽키포레스트 & 우붓 시장' },
+                    { day: 3, title: '서핑과 마사지', desc: '꾸따 해변 초보 서핑 강습 ➔ 럭셔리 스파 마사지 ➔ 울루와투 절벽사원' }
+                ]
+            },
+            {
+                id: 'danang',
+                region: 'asia',
+                duration: 'medium',
+                name: '다낭 & 호이안, 베트남',
+                tagline: '가성비 고급 리조트와 아기자기한 등불 야시장',
+                vibes: ['Resort', 'Food', 'Culture'],
+                keywords: ['다낭', '베트남', '호이안', '가성비', '등불', '바나힐', '마사지', '쌀국수', '휴양', '리조트', '가족여행', '아시아'],
+                why: '부담 없는 경비로 고급 풀빌라 리조트와 올드타운의 아름다운 야경, 스파 마사지를 즐기기에 최고입니다.',
+                spots: [
+                    { name: '바나힐 골든 브릿지', desc: '거인의 손이 받치고 있는 몽환적인 다리와 테마파크' },
+                    { name: '호이안 올드타운', desc: '알록달록한 등불이 밤을 밝히는 유네스코 세계문화유산' }
+                ],
+                flightTime: '직항 약 4시간 30분',
+                currency: 'VND (1만 동 ≈ 550원)',
+                bestSeason: '2월~5월 (건기)',
+                image: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '30만원', hotel: '8만원/박', food: '3만원/일', total: '약 55만원' },
+                foods: ['반미 샌드위치 & 쌀국수', '분짜', '코코넛 스무디 커피'],
+                checklist: ['그랩(Grab) 앱 다운로드', '달러 환전', '자외선 차단제'],
+                itinerary: [
+                    { day: 1, title: '다낭 휴양', desc: '다낭 도착 ➔ 미케 비치 체크인 ➔ 용다리 야경 및 야시장' },
+                    { day: 2, title: '바나힐과 호이안', desc: '바나힐 골든브릿지 ➔ 호이안 이동 ➔ 소망등 띄우기 & 올드타운 야경' },
+                    { day: 3, title: '마사지와 힐링', desc: '한시장 쇼핑 ➔ 현지 마사지 ➔ 핑크성당 산책 후 공항 이동' }
+                ]
+            },
+            {
+                id: 'hanoi',
+                region: 'asia',
+                duration: 'medium',
+                name: '하노이 & 하롱베이, 베트남',
+                tagline: '천년 천연 석회암 섬들이 만든 하롱베이의 기적',
+                vibes: ['Culture', 'Nature', 'Food'],
+                keywords: ['하노이', '베트남', '하롱베이', '크루즈', '분짜', '에그커피', '기차길', '역사', '가성비', '아시아'],
+                why: '세계 유네스코 자산인 하롱베이 에메랄드 바다 크루즈와 하노이 올드쿼터의 역동적인 문화와 미식을 탐방합니다.',
+                spots: [
+                    { name: '하롱베이 크루즈', desc: '수천 개의 석회암 섬 사이를 지나는 신비로운 해상 궁전' },
+                    { name: '하노이 성요셉 성당 & 맥주거리', desc: '프랑스풍 건축물과 밤마다 서는 활기찬 스트리트 버스킹' }
+                ],
+                flightTime: '직항 약 4시간 15분',
+                currency: 'VND (1만 동 ≈ 550원)',
+                bestSeason: '10월~4월',
+                image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '32만원', hotel: '7만원/박', food: '2.5만원/일', total: '약 58만원' },
+                foods: ['오리지널 하노이 분짜', '에그 커피', '반꾸온(쌀전병)'],
+                checklist: ['하롱베이 1일 크루즈 예약', '달러 환전', '우비'],
+                itinerary: [
+                    { day: 1, title: '하노이 감성', desc: '하노이 도착 ➔ 호안끼엠 호수 산책 ➔ 성요셉 성당 & 에그커피' },
+                    { day: 2, title: '하롱베이 크루즈', desc: '하롱베이 일일 투어 ➔ 카약 체험 & 동굴 탐험 ➔ 맥주거리 야경' },
+                    { day: 3, title: '기차길 골목과 쇼핑', desc: '기차길 카페거리 ➔ 오리지널 분짜 맛집 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'singapore',
+                region: 'asia',
+                duration: 'medium',
+                name: '싱가포르 (Singapore)',
+                tagline: '미래지향적 정원과 마천루, 깨끗하고 안전한 럭셔리 도시',
+                vibes: ['City', 'Resort', 'Food'],
+                keywords: ['싱가포르', '마리나베이', '가든스바이더베이', '야경', '야시장', '칠리크랩', '센토사', '안전', '가족', '아시아'],
+                why: '세계 최고 수준의 안전함과 깨끗함, 마리나 베이 샌즈 야경, 가든스 바이 더 베이의 웅장한 아바타 정원을 만납니다.',
+                spots: [
+                    { name: '가든스 바이 더 베이', desc: '밤마다 초대형 인공 슈퍼트리가 불을 밝히는 미래형 수목원' },
+                    { name: '마리나 베이 샌즈', desc: '싱가포르 대표 랜드마크 스카이파크와 인피니티 풀' }
+                ],
+                flightTime: '직항 약 6시간 10분',
+                currency: 'SGD (1달러 ≈ 1,020원)',
+                bestSeason: '1월~10월 (연중 양호)',
+                image: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '55만원', hotel: '25만원/박', food: '7만원/일', total: '약 140만원' },
+                foods: ['매콤 달콤한 칠리크랩', '카야 토스트 & 반숙란', '바쿠테(갈비탕)'],
+                checklist: ['싱가포르 입국카드(SG Arrival Card)', '보조배터리', '우산'],
+                itinerary: [
+                    { day: 1, title: '마리나 야경', desc: '싱가포르 도착 ➔ 머라이언 공원 ➔ 마리나베이 스카이파크 및 분수쇼' },
+                    { day: 2, title: '미래 수목원과 테마파크', desc: '가든스바이더베이 슈퍼트리 쇼 ➔ 센토사 섬 유니버설 스튜디오' },
+                    { day: 3, title: '다문화와 미식', desc: '차이나타운 & 리틀인디아 탐방 ➔ 칠리크랩 저녁 ➔ 쥬얼창이 공항' }
+                ]
+            },
+            {
+                id: 'cebu',
+                region: 'asia',
+                duration: 'medium',
+                name: '세부 (Cebu), 필리핀',
+                tagline: '고래상어와 스노클링, 에메랄드빛 해양 스포츠의 천국',
+                vibes: ['Activity', 'Resort', 'Nature'],
+                keywords: ['세부', '필리핀', '고래상어', '오슬롭', '가와산', '캐녀닝', '호핑투어', '바다', '가성비', '아시아'],
+                why: '오슬롭에서 신비로운 거대 고래상어와 수영하고, 가와산 캐녀닝과 호핑투어로 열정적인 액티비티를 선사합니다.',
+                spots: [
+                    { name: '오슬롭 고래상어 와칭', desc: '바다 한가운데서 순한 고래상어와 함께 헤엄치는 특별한 경험' },
+                    { name: '가와산 계곡 캐녀닝', desc: '에메랄드빛 계곡 폭포에서 다이빙과 슬라이딩을 즐기는 에코 액티비티' }
+                ],
+                flightTime: '직항 약 4시간 30분',
+                currency: 'PHP (1페소 ≈ 24원)',
+                bestSeason: '12월~5월 (건기)',
+                image: 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '35만원', hotel: '10만원/박', food: '3만원/일', total: '약 75만원' },
+                foods: ['산미구엘 맥주 & 레촌(바비큐)', '알리망오 크랩', '망고 디저트'],
+                checklist: ['방수 카메라/GoPro', '래쉬가드', '페소 환전'],
+                itinerary: [
+                    { day: 1, title: '막탄 리조트', desc: '세부 도착 ➔ 리조트 수영장 휴식 ➔ 해변 석양 레스토랑' },
+                    { day: 2, title: '고래상어와 캐녀닝', desc: '새벽 오슬롭 고래상어 스노클링 ➔ 가와산 계곡 캐녀닝 투어' },
+                    { day: 3, title: '섬 호핑투어', desc: '날루수안/힐루뚱안 호핑투어 ➔ 세부 시티 쇼핑 후 공항' }
+                ]
+            },
+            {
+                id: 'boracay',
+                region: 'asia',
+                duration: 'medium',
+                name: '보라카이 (Boracay), 필리핀',
+                tagline: '세계 3대 해변! 밀가루처럼 고운 화이트 비치와 붉은 노을',
+                vibes: ['Resort', 'Nature', 'Activity'],
+                keywords: ['보라카이', '필리핀', '화이트비치', '석양', '선셋세일링', '휴양', '바다', '해변', '신혼여행', '아시아'],
+                why: '눈처럼 고운 화이트 비치 모래사장 위에서 감상하는 환상적인 붉은 석양과 요트 선셋 세일링을 느낄 수 있습니다.',
+                spots: [
+                    { name: '화이트 비치 (White Beach)', desc: '4km에 걸쳐 펼쳐진 세계적인 파우더 비치' },
+                    { name: '윌리스 록 & 푸카쉘 비치', desc: '신비로운 독특한 바위 사원과 조개껍데기 해변' }
+                ],
+                flightTime: '직항 약 4시간 30분 (칼리보 공항)',
+                currency: 'PHP (1페소 ≈ 24원)',
+                bestSeason: '11월~4월 (건기)',
+                image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '38만원', hotel: '12만원/박', food: '3.5만원/일', total: '약 80만원' },
+                foods: ['망고 쉐이크 (할라마망고)', '게 요리 & 시푸드 바비큐', '산미구엘'],
+                checklist: ['아쿠아슈즈', '방수팩', '선글라스'],
+                itinerary: [
+                    { day: 1, title: '화이트비치 입성', desc: '보라카이 섬 픽업 입장 ➔ 화이트 비치 산책 ➔ 디몰 맛집 탐방' },
+                    { day: 2, title: '선셋 세일링', desc: '패러세일링/호핑투어 ➔ 돗배 선셋 세일링으로 환상적인 노을 감상' },
+                    { day: 3, title: '푸카쉘 비치와 스파', desc: '푸카쉘 해변 탐방 ➔ 럭셔리 스파 마사지 후 공항 이동' }
+                ]
+            },
+
+            // --- Korea / 국내 ---
+            {
+                id: 'jeju',
+                region: 'korea',
+                duration: 'short',
+                name: '제주도 (Jeju Island), 대한민국',
+                tagline: '에메랄드빛 바다와 한라산, 감성 카페가 가득한 대표 휴양지',
+                vibes: ['Nature', 'Food', 'Resort'],
+                keywords: ['제주도', '제주', '국내', '바다', '흑돼지', '한라산', '드라이브', '카페', '돌담', '감성', '휴양', '오름'],
+                why: '비행기로 1시간 만에 만나는 천혜의 에메랄드빛 해변, 흑돼지 구이, 감성적인 오션뷰 카페 드라이브 코스입니다.',
+                spots: [
+                    { name: '성산일출봉 & 광치기해변', desc: '유네스코 세계자연유산의 웅장한 일출 명소' },
+                    { name: '협재 해수욕장', desc: '비양도가 보이는 투명한 에메랄드빛 바다' }
+                ],
+                flightTime: '직항 약 1시간 (김포 기준)',
+                currency: 'KRW (원)',
+                bestSeason: '4월~6월 (봄/유채꽃), 9월~11월 (억새)',
+                image: 'https://images.unsplash.com/photo-1548115184-bc6544d06a58?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '10만원', hotel: '10만원/박', food: '5만원/일', total: '약 35만원' },
+                foods: ['제주 흑돼지 구이', '갈치조림 & 성게미역국', '우도 땅콩 아이스크림'],
+                checklist: ['신분증', '렌터카 운전면허증', '편한 운동화'],
+                itinerary: [
+                    { day: 1, title: '애월 오션뷰', desc: '제주 공항 도착 ➔ 렌터카 수령 ➔ 애월 해안도로 드라이브 & 카페 ➔ 협재 석양' },
+                    { day: 2, title: '서귀포 자연', desc: '중문 주상절리 ➔ 천지연 폭포 ➔ 성산일출봉 ➔ 흑돼지 저녁' },
+                    { day: 3, title: '힐링과 선물', desc: '비자림 삼나무 숲길 ➔ 동문시장 오메기떡 구매 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'busan',
+                region: 'korea',
+                duration: 'short',
+                name: '부산 (Busan), 대한민국',
+                tagline: '해운대 야경과 해변열차, 신선한 해산물 먹방 도시',
+                vibes: ['City', 'Food', 'Nature'],
+                keywords: ['부산', '국내', '해운대', '광안리', '야경', '국밥', '해변열차', '바다', '회', '광안대교', '요트'],
+                why: '광안대교 드라이브 및 야경, 블루라인파크 해변열차, 돼지국밥과 신선한 회로 먹거리가 풍부한 바다 도시입니다.',
+                spots: [
+                    { name: '광안리 해수욕장', desc: '광안대교 라이트쇼와 야경을 보며 즐기는 바다 명소' },
+                    { name: '해운대 블루라인파크', desc: '해안선을 따라 달리는 귀여운 스카이캡슐 열차' }
+                ],
+                flightTime: 'KTX 약 2시간 30분 / 비행기 1시간',
+                currency: 'KRW (원)',
+                bestSeason: '5월~10월',
+                image: 'https://images.unsplash.com/photo-1626249911032-45e0fb144080?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '8만원 (KTX)', hotel: '11만원/박', food: '5만원/일', total: '약 32만원' },
+                foods: ['진한 부산 돼지국밥', '부산 어묵 & 비빔당면', '광안리 신선한 회'],
+                checklist: ['KTX 예매', '스카이캡슐 사전예약', '편한 신발'],
+                itinerary: [
+                    { day: 1, title: '광안리 밤바다', desc: '부산역 도착 ➔ 감천문화마을 ➔ 광안리 바다뷰 카페 & 야경' },
+                    { day: 2, title: '해운대와 송정', desc: '해운대 블루라인파크 스카이캡슐 ➔ 해동용궁사 ➔ 요트투어' },
+                    { day: 3, title: '영도와 먹방', desc: '영도 흰여울문화마을 ➔ 자갈치시장 & 돼지국밥 ➔ 부산역' }
+                ]
+            },
+            {
+                id: 'gangneung',
+                region: 'korea',
+                duration: 'short',
+                name: '강릉 & 속초, 대한민국',
+                tagline: '동해안 커피거리와 푸른 동해 바다, 장칼국수 미식',
+                vibes: ['Nature', 'Food', 'Resort'],
+                keywords: ['강릉', '속초', '동해', '바다', '커피거리', '안목해변', '장칼국수', '닭강정', '국내', '드라이브'],
+                why: '안목해변의 커피거리, 속초 중앙시장의 다양한 닭강정과 순대, 시원한 동해 바다 드라이브 코스입니다.',
+                spots: [
+                    { name: '안목해변 커피거리', desc: '창밖으로 기분 좋은 파도 소리가 울리는 테라스 카페거리' },
+                    { name: '속초 관광수산시장', desc: '닭강정, 오징어순대, 씨앗호떡 등 동해안 최고의 전통 먹거리' }
+                ],
+                flightTime: 'KTX 약 1시간 30분',
+                currency: 'KRW (원)',
+                bestSeason: '연중 무휴',
+                image: 'https://images.unsplash.com/photo-1598880940371-c756e015fea1?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '5만원 (KTX)', hotel: '9만원/박', food: '4만원/일', total: '약 25만원' },
+                foods: ['강릉 초당순두부 & 장칼국수', '속초 닭강정 & 오징어순대', '수제 젤라또'],
+                checklist: ['KTX/버스 티켓', '편한 복장', '카메라'],
+                itinerary: [
+                    { day: 1, title: '강릉 커피와 바다', desc: '강릉역 도착 ➔ 초당순두부 마을 ➔ 안목해변 커피거리 & BTS 버스정류장' },
+                    { day: 2, title: '속초 먹방 드라이브', desc: '속초 이동 ➔ 속초 중앙시장 먹방 ➔ 영금정 바다 야경' },
+                    { day: 3, title: '설악산과 귀가', desc: '설악산 케이블카 ➔ 아바이마을 오징어순대 ➔ KTX 귀가' }
+                ]
+            },
+            {
+                id: 'gyeongju',
+                region: 'korea',
+                duration: 'short',
+                name: '경주 (Gyeongju), 대한민국',
+                tagline: '천년 신라의 숨결, 황리단길의 고즈넉한 감성과 야경',
+                vibes: ['Culture', 'Food'],
+                keywords: ['경주', '신라', '첨성대', '동궁과월지', '황리단길', '한옥', '국내', '역사', '야경', '감성'],
+                why: '동궁과 월지의 몽환적인 밤 야경과 황리단길의 감성 한옥 카페, 신라 천년의 문화유산이 어우러집니다.',
+                spots: [
+                    { name: '동궁과 월지 (안압지)', desc: '연못에 비치는 신라 궁궐의 환상적인 야경 스폿' },
+                    { name: '황리단길', desc: '고즈넉한 한옥 건물 속 예쁜 카페와 맛집, 공방이 가득한 거리' }
+                ],
+                flightTime: 'KTX 약 2시간 (신경주역)',
+                currency: 'KRW (원)',
+                bestSeason: '3월~5월 (벚꽃), 10월~11월 (단풍)',
+                image: 'https://images.unsplash.com/photo-1617839625591-e5a789593135?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '7만원 (KTX)', hotel: '9만원/박', food: '4만원/일', total: '약 26만원' },
+                foods: ['황남빵 & 십원빵', '경주 쌈밥 정식', '한옥 카페 디저트'],
+                checklist: ['KTX 티켓', '자전거/전동스쿠터 앱', '편한 신발'],
+                itinerary: [
+                    { day: 1, title: '황리단길과 야경', desc: '신경주역 도착 ➔ 황리단길 카페 ➔ 첨성대 핑크뮬리 ➔ 동궁과 월지 야경' },
+                    { day: 2, title: '신라 문화탐방', desc: '불국사 & 석굴암 ➔ 경주 국립박물관 ➔ 보문단지 산책' },
+                    { day: 3, title: '한옥 힐링 후 귀가', desc: '대릉원 목련 포토존 ➔ 황남빵 구매 ➔ KTX 타고 귀가' }
+                ]
+            },
+
+            // --- Europe / 유럽 ---
+            {
+                id: 'paris',
+                region: 'europe',
+                duration: 'long',
+                name: '파리 (Paris), 프랑스',
+                tagline: '에펠탑과 미술관, 로맨틱한 미식의 낭만 도시',
+                vibes: ['Culture', 'City', 'Food'],
+                keywords: ['파리', '프랑스', '유럽', '에펠탑', '루브르', '낭만', '미술관', '와인', '크루아상', '쇼핑', '패션', '신혼여행'],
+                why: '에펠탑 야경과 루브르/오르세 박물관의 예술품, 세느강 크루즈로 대표되는 세계 최고의 로맨틱 명소입니다.',
+                spots: [
+                    { name: '에펠탑 & 샤요 궁', desc: '파리의 상징이자 밤마다 빛나는 로맨틱한 조명 쇼' },
+                    { name: '루브르 박물관', desc: '모나리자를 비롯한 세계적 거장들의 걸작이 숨쉬는 궁전' }
+                ],
+                flightTime: '직항 약 14시간',
+                currency: 'EUR (1유로 ≈ 1,450원)',
+                bestSeason: '5월~6월, 9월~10월',
+                image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '130만원', hotel: '25만원/박', food: '9만원/일', total: '약 260만원' },
+                foods: ['바삭한 크루아상 & 에스프레소', '프렌치 어니언 스프', '에스카르고(달팽이 요리) & 와인'],
+                checklist: ['소매치기 방지 복대', '뮤지엄 패스', '편한 운동화'],
+                itinerary: [
+                    { day: 1, title: '낭만의 세느강', desc: '파리 도착 ➔ 샹젤리제 거리 산책 ➔ 바토무슈 세느강 크루즈' },
+                    { day: 2, title: '예술의 날', desc: '루브르 박물관 ➔ 튈르리 정원 ➔ 오르세 미술관 ➔ 몽마르트 언덕' },
+                    { day: 3, title: '에펠탑과 쇼핑', desc: '마레 지구 쇼핑 ➔ 라파예트 백화점 ➔ 샤요 궁 에펠탑 야경 피크닉' }
+                ]
+            },
+            {
+                id: 'interlaken',
+                region: 'europe',
+                duration: 'long',
+                name: '인터라켄 & 융프라우, 스위스',
+                tagline: '알프스의 웅장한 설산과 에메랄드빛 호수 대자연',
+                vibes: ['Nature', 'Activity', 'Resort'],
+                keywords: ['스위스', '인터라켄', '융프라우', '알프스', '유럽', '대자연', '설산', '하이킹', '패러글라이딩', '풍경', '힐링'],
+                why: '동화 속 청정 알프스 설산과 에메랄드빛 호수, 산악열차를 경험하는 대자연 힐링의 끝판왕입니다.',
+                spots: [
+                    { name: '융프라우요흐', desc: '유럽의 지붕이라 불리는 만년설 알프스 산악 전망대' },
+                    { name: '피르스트 액티비티', desc: '클리프 워크와 패러글라이딩으로 알프스를 온몸으로 느끼는 곳' }
+                ],
+                flightTime: '직항 약 13시간 (취리히 도착)',
+                currency: 'CHF (1프랑 ≈ 1,550원)',
+                bestSeason: '6월~9월 (하이킹), 12월~3월 (스키)',
+                image: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '140만원', hotel: '30만원/박', food: '10만원/일', total: '약 310만원' },
+                foods: ['치즈 퐁듀', '뢰스티(스위스식 감자전)', '스위스 수제 초콜릿'],
+                checklist: ['스위스 Travel Pass', '선글라스 & 자외선차단제', '방한 자켓'],
+                itinerary: [
+                    { day: 1, title: '인터라켄 입성', desc: '취리히 기차 이동 ➔ 인터라켄 도착 ➔ 브리엔츠 호수 유람선' },
+                    { day: 2, title: '유럽의 지붕', desc: '산악열차로 융프라우요흐 등정 ➔ 만년설 신라면 ➔ 그린델발트 산책' },
+                    { day: 3, title: '피르스트 액티비티', desc: '피르스트 곤돌라 ➔ 클리프워크 & 패러글라이딩 ➔ 체르마트 이동' }
+                ]
+            },
+            {
+                id: 'barcelona',
+                region: 'europe',
+                duration: 'long',
+                name: '바르셀로나 (Barcelona), 스페인',
+                tagline: '가우디의 예술 건축과 지중해 해변, 활력 넘치는 타파스',
+                vibes: ['Culture', 'City', 'Food'],
+                keywords: ['스페인', '바르셀로나', '가우디', '사그라다파밀리아', '빠에야', '타파스', '해변', '유럽', '축구'],
+                why: '가우디의 천재적인 건축물과 지중해 해변, 활력 넘치는 타파스 요리가 어우러진 눈과 입이 즐거운 도시입니다.',
+                spots: [
+                    { name: '사그라다 파밀리아 성당', desc: '가우디의 대걸작이자 빛의 아름다움을 보여주는 성당' },
+                    { name: '구엘 공원', desc: '알록달록한 모자이크와 바르셀로나 전경이 펼쳐지는 언덕 공원' }
+                ],
+                flightTime: '직항 약 13시간 30분',
+                currency: 'EUR (1유로 ≈ 1,450원)',
+                bestSeason: '5월~6월, 9월~10월',
+                image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '125만원', hotel: '22만원/박', food: '8만원/일', total: '약 240만원' },
+                foods: ['해산물 빠에야', '하몽 & 크로케타스', '상그리아 & 츄러스'],
+                checklist: ['사그라다 파밀리아 사전예약', '소매치기 방지 스트랩', '선글라스'],
+                itinerary: [
+                    { day: 1, title: '지중해와 고딕', desc: '도착 ➔ 람블라스 거리 ➔ 고딕 지구 & 바르셀로네타 해변 석양' },
+                    { day: 2, title: '가우디 투어', desc: '사그라다 파밀리아 성당 ➔ 카사바트요 ➔ 구엘 공원' },
+                    { day: 3, title: '미식과 야경', desc: '보케리아 전통시장 ➔ 피카소 미술관 ➔ 몬주익 언덕 야경' }
+                ]
+            },
+            {
+                id: 'rome',
+                region: 'europe',
+                duration: 'long',
+                name: '로마 (Rome), 이탈리아',
+                tagline: '거대한 야외 박물관! 콜로세움과 트레비 분수, 거장의 파스타',
+                vibes: ['Culture', 'Food', 'City'],
+                keywords: ['이탈리아', '로마', '유럽', '콜로세움', '트레비분수', '바티칸', '파스타', '젤라또', '피자', '역사'],
+                why: '2천년 역사의 콜로세움, 바티칸 미술관, 골목길마다 퍼지는 풍부한 까르보나라와 젤라또를 만날 수 있습니다.',
+                spots: [
+                    { name: '콜로세움 & 포로 로마노', desc: '고대 로마 검투사들의 거대한 원형 경기장 유적' },
+                    { name: '트레비 분수', desc: '동전을 던지며 다시 로마로 돌아오길 기원하는 아름다운 분수' }
+                ],
+                flightTime: '직항 약 12시간 30분',
+                currency: 'EUR (1유로 ≈ 1,450원)',
+                bestSeason: '4월~5월, 9월~10월',
+                image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '120만원', hotel: '20만원/박', food: '7.5만원/일', total: '약 230만원' },
+                foods: ['오리지널 관찰레 까르보나라', '화덕 피자', '수제 젤라또'],
+                checklist: ['바티칸 투어 패스', '편한 운동화', '물병'],
+                itinerary: [
+                    { day: 1, title: '고대 로마 속으로', desc: '로마 도착 ➔ 콜로세움 & 포로 로마노 ➔ 트레비 분수 야경' },
+                    { day: 2, title: '바티칸과 예술', desc: '바티칸 박물관 & 천장화 ➔ 성 베드로 대성당 ➔ 천사들의 성' },
+                    { day: 3, title: '미식과 광장', desc: '스페인 광장 ➔ 판테온 ➔ 나보나 광장에서 정통 파스타 식사' }
+                ]
+            },
+            {
+                id: 'london',
+                region: 'europe',
+                duration: 'long',
+                name: '런던 (London), 영국',
+                tagline: '빅벤과 뮤지컬, 역사적인 박물관이 공존하는 클래식 도시',
+                vibes: ['Culture', 'City'],
+                keywords: ['영국', '런던', '유럽', '빅벤', '타워브릿지', '뮤지컬', '해리포터', '박물관', '클래식'],
+                why: '무료 입장이 가능한 대영박물관/내셔널갤러리, 웨스트엔드 뮤지컬, 클래식한 빨간 이층버스의 운치를 즐깁니다.',
+                spots: [
+                    { name: '빅벤 & 국회의사당', desc: '템즈 강변을 따라 펼쳐지는 런던의 클래식한 랜드마크' },
+                    { name: '타워 브릿지', desc: '동화 같은 외관의 고딕 양식 다리로 야경이 매우 아름다운 곳' }
+                ],
+                flightTime: '직항 약 14시간 30분',
+                currency: 'GBP (1파운드 ≈ 1,720원)',
+                bestSeason: '6월~8월 (백야와 따뜻한 날씨)',
+                image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '135만원', hotel: '28만원/박', food: '9만원/일', total: '약 270만원' },
+                foods: ['피시 앤 칩스', '애프터눈 티 세트', '버러 마켓 스트리트 푸드'],
+                checklist: ['트래블월렛/체크카드', '우산/트렌치코트', '오이스터 교통카드'],
+                itinerary: [
+                    { day: 1, title: '템즈강 클래식', desc: '런던 도착 ➔ 빅벤 & 런던아이 ➔ 템즈강 산책 및 타워브릿지 야경' },
+                    { day: 2, title: '박물관과 뮤지컬', desc: '대영박물관 ➔ 코벤트가든 ➔ 웨스트엔드 뮤지컬 관람' },
+                    { day: 3, title: '해리포터와 마켓', desc: '해리포터 스튜디오 투어 또는 버러마켓 ➔ 하이드파크 산책' }
+                ]
+            },
+            {
+                id: 'prague',
+                region: 'europe',
+                duration: 'long',
+                name: '프라하 (Prague), 체코',
+                tagline: '붉은 지붕과 카를교, 세계 최고 맥주의 낭만 도시',
+                vibes: ['Culture', 'City', 'Food'],
+                keywords: ['체코', '프라하', '유럽', '카를교', '야경', '코젤맥주', '굴라쉬', '동유럽', '가성비', '로맨틱'],
+                why: '동유럽 최고의 가성비, 고딕과 바로크 양식의 붉은 지붕 건축물, 구시가지 야경 및 코젤 맥주 본고장을 경험합니다.',
+                spots: [
+                    { name: '카를교 (Charles Bridge)', desc: '성상들이 줄지어 선 몰다우 강 위 클래식한 로맨틱 다리' },
+                    { name: '프라하 성 & 구시가 광장', desc: '천문시계탑과 붉은 지붕 전경이 펼쳐지는 언덕 위 성' }
+                ],
+                flightTime: '직항 약 12시간 50분',
+                currency: 'CZK (1코루나 ≈ 60원)',
+                bestSeason: '5월~9월, 12월 (크리스마스 마켓)',
+                image: 'https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '115만원', hotel: '15만원/박', food: '5만원/일', total: '약 200만원' },
+                foods: ['꼴레뇨(체코식 족발)', '뜨거운 뜨스델로(굴뚝빵)', '신선한 필스너 우르켈 맥주'],
+                checklist: ['체코 코루나/체크카드', '편한 운동화(돌길)', '카메라'],
+                itinerary: [
+                    { day: 1, title: '구시가지와 카늘교', desc: '프라하 도착 ➔ 구시가 광장 천문시계 ➔ 카를교 석양 및 야경 산책' },
+                    { day: 2, title: '프라하 성 투어', desc: '프라하 성 ➔ 성 비투스 대성당 ➔ 황금소로 ➔ 코젤 펍에서 저녁' },
+                    { day: 3, title: '전망대와 귀국', desc: '페트린 타워 전망대 ➔ 뜨스델로 빵 맛보기 ➔ 쇼핑 후 공항 이동' }
+                ]
+            },
+            {
+                id: 'reykjavik',
+                region: 'europe',
+                duration: 'long',
+                name: '레이캬비크 & 아이슬란드',
+                tagline: '신비로운 오로라와 블루라군 온천, 얼음과 불의 땅',
+                vibes: ['Nature', 'Activity', 'Resort'],
+                keywords: ['아이슬란드', '레이캬비크', '오로라', '블루라군', '온천', '빙하', '폭포', '대자연', '유럽', '버킷리스트'],
+                why: '하늘을 수놓는 환상적인 오로라, 지열 온천 블루라군, 검은 모래 해변과 웅장한 빙하 동굴을 경험합니다.',
+                spots: [
+                    { name: '블루라군 온천', desc: '밀키블루 빛 지열 온천수에서 즐기는 세계 최고 수준의 야외 스파' },
+                    { name: '골든 서클 (굴포스 & 게이시르)', desc: '땅속에서 솟구치는 간헐천과 거대한 빙하 폭포의 대자연' }
+                ],
+                flightTime: '경유 약 15시간~18시간',
+                currency: 'ISK (100크로나 ≈ 1,000원)',
+                bestSeason: '9월~4월 (오로라), 6월~8월 (백야 & 로드트립)',
+                image: 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '160만원', hotel: '25만원/박', food: '9만원/일', total: '약 320만원' },
+                foods: ['아이슬란드 람블(양고기 수프)', '신선한 랑구스틴(가재 요리)', '스카이르(요거트)'],
+                checklist: ['방풍/방수 방한복', '아이젠', '국제운전면허증'],
+                itinerary: [
+                    { day: 1, title: '블루라군 스파', desc: '아이슬란드 도착 ➔ 블루라군 야외 지열 온천욕 ➔ 레이캬비크 시내' },
+                    { day: 2, title: '골든서클 투어', desc: '싱벨리르 국립공원 ➔ 게이시르 간헐천 ➔ 굴포스 폭포 ➔ 야간 오로라 헌팅' },
+                    { day: 3, title: '남부 해안과 빙하', desc: '디르홀레이 검은모래해변 ➔ 요쿨살론 빙하 하이킹 ➔ 공항 이동' }
+                ]
+            },
+
+            // --- Americas & Oceania / 미주 및 대양주 ---
+            {
+                id: 'hawaii',
+                region: 'americas',
+                duration: 'long',
+                name: '하와이 오아후 (Hawaii), 미국',
+                tagline: '태평양의 낙원! 와이키키 해변과 명품 쇼핑, 드라이브',
+                vibes: ['Resort', 'Nature', 'Activity'],
+                keywords: ['하와이', '미국', '와이키키', '휴양지', '신혼여행', '서핑', '드라이브', '면세', '바다', '대양주'],
+                why: '와이키키 해변의 파도, 와이켈레 아울렛 쇼핑, 하나우마 베이의 스노클링으로 완벽한 휴양을 약속합니다.',
+                spots: [
+                    { name: '와이키키 해변 (Waikiki)', desc: '세계에서 가장 유명한 리조트 해변과 서핑 파도' },
+                    { name: '하나우마 베이', desc: '화산재 분화구 속에 형형색색 열대어가 가득한 스노클링 성지' }
+                ],
+                flightTime: '직항 약 8시간 30분',
+                currency: 'USD (1달러 ≈ 1,380원)',
+                bestSeason: '4월~11월',
+                image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '110만원', hotel: '30만원/박', food: '10만원/일', total: '약 280만원' },
+                foods: ['포키 볼(Poke Bowl)', '가와이 하와이안 버거', '쉐이브 아이스'],
+                checklist: ['ESTA 미국 비자', '국제운전면허증', '스노클링 장비'],
+                itinerary: [
+                    { day: 1, title: '와이키키 석양', desc: '호놀룰루 도착 ➔ 와이키키 비치 산책 ➔ 루아우 민속 쇼 & 디너' },
+                    { day: 2, title: '오아후 섬 드라이브', desc: '다이아몬드헤드 등반 ➔ 하나우마베이 스노클링 ➔ 노스쇼어 새우트럭' },
+                    { day: 3, title: '아울렛 쇼핑', desc: '와이켈레 아울렛 프리미엄 쇼핑 ➔ 와이키키 야경 레스토랑' }
+                ]
+            },
+            {
+                id: 'guam',
+                region: 'americas',
+                duration: 'medium',
+                name: '괌 (Guam), 미국령',
+                tagline: '에메랄드빛 쇼핑 천국! 가족 및 커플을 위한 휴양 파라다이스',
+                vibes: ['Resort', 'Activity', 'City'],
+                keywords: ['괌', '미국', '휴양지', '쇼핑', '면세', '가족여행', '스노클링', '투몬비치', '리조트', '바다', '대양주'],
+                why: '섬 전체가 면세구역으로 쇼핑과 투몬비치의 에메랄드빛 스노클링, 럭셔리 리조트를 동시에 즐길 수 있습니다.',
+                spots: [
+                    { name: '투몬 비치', desc: '수심이 얕고 투명하여 수영 및 스노클링하기 최적인 해변' },
+                    { name: '사랑의 절벽', desc: '괌의 대표 전설이 담긴 절벽으로 태평양 전경이 한눈에 들어오는 명소' }
+                ],
+                flightTime: '직항 약 4시간 15분',
+                currency: 'USD (1달러 ≈ 1,380원)',
+                bestSeason: '12월~5월 (건기)',
+                image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '45만원', hotel: '22만원/박', food: '7만원/일', total: '약 120만원' },
+                foods: ['차모로 스타일 바비큐', '수제 버거(도스버거)', '해산물 보일링'],
+                checklist: ['ESTA 비자(선택)', '돼지코 어댑터(110V)', '스노클링 장비'],
+                itinerary: [
+                    { day: 1, title: '투몬 석양', desc: '괌 도착 ➔ 리조트 체크인 ➔ 투몬 비치 산책 및 바비큐 디너' },
+                    { day: 2, title: '남부 투어 & 쇼핑', desc: '사랑의 절벽 ➔ 솔레다드 관망대 ➔ GPO 면세점 쇼핑' },
+                    { day: 3, title: '해양 액티비티', desc: '돌핀 크루즈 & 스노클링 ➔ 마이크로네시아 몰 ➔ 공항 이동' }
+                ]
+            },
+            {
+                id: 'newyork',
+                region: 'americas',
+                duration: 'long',
+                name: '뉴욕 (New York), 미국',
+                tagline: '세계의 중심! 타임스퀘어 야경과 브로드웨이 뮤지컬, 센트럴파크',
+                vibes: ['City', 'Culture', 'Food'],
+                keywords: ['뉴욕', '미국', '타임스퀘어', '브로드웨이', '뮤지컬', '센트럴파크', '야경', '미술관', '자유의여신상'],
+                why: '타임스퀘어의 화려한 네온사인, 센트럴 파크 피크닉, MOMA 미술관 및 브로드웨이 뮤지컬의 감동이 펼쳐집니다.',
+                spots: [
+                    { name: '타임스퀘어 & 브로드웨이', desc: '세계에서 가장 화려한 네온사인과 브로드웨이 공연장' },
+                    { name: '센트럴 파크 (Central Park)', desc: '빌딩 숲 한가운데 자리 잡은 거대하고 평화로운 대도심 공원' }
+                ],
+                flightTime: '직항 약 14시간',
+                currency: 'USD (1달러 ≈ 1,380원)',
+                bestSeason: '5월~6월, 9월~10월, 12월 (연말 분위기)',
+                image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '150만원', hotel: '35만원/박', food: '11만원/일', total: '약 340만원' },
+                foods: ['뉴욕 스타일 씬 피자', '수제 쉑쉑 버거', '베이글 & 크림치즈'],
+                checklist: ['ESTA 전자비자', '신용카드/트래블카드', '편한 운동화'],
+                itinerary: [
+                    { day: 1, title: '타임스퀘어의 열기', desc: '뉴욕 도착 ➔ 타임스퀘어 야경 탐방 ➔ 브로드웨이 뮤지컬 관람' },
+                    { day: 2, title: '자유의 여신상과 미술관', desc: '자유의 여신상 페리 ➔ MOMA/메트로폴리탄 미술관 ➔ 엠파이어스테이트 야경' },
+                    { day: 3, title: '센트럴파크 힐링', desc: '센트럴 파크 산책 ➔ 첼시마켓 러브조형물 ➔ 덤보 덤보 포토존' }
+                ]
+            },
+            {
+                id: 'sydney',
+                region: 'americas',
+                duration: 'long',
+                name: '시드니 (Sydney), 호주',
+                tagline: '오페라하우스와 하버브릿지, 청정 바다와 코알라',
+                vibes: ['City', 'Nature', 'Resort'],
+                keywords: ['시드니', '호주', '오페라하우스', '하버브릿지', '본다이비치', '코알라', '블루마운틴', '대양주', '청정'],
+                why: '아이코닉한 오페라 하우스 전경, 본다이 비치의 해안 산책로, 블루마운틴의 웅장한 대자연을 만끽할 수 있습니다.',
+                spots: [
+                    { name: '시드니 오페라 하우스', desc: '세계적인 조형미를 자랑하는 하버변 문화예술 랜드마크' },
+                    { name: '본다이 비치 (Bondi Beach)', desc: '활기찬 서퍼들과 오션풀이 어우러진 시드니 대표 해변' }
+                ],
+                flightTime: '직항 약 10시간 30분',
+                currency: 'AUD (1달러 ≈ 910원)',
+                bestSeason: '10월~4월 (한국과 반대 계절)',
+                image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '120만원', hotel: '22만원/박', food: '8만원/일', total: '약 250만원' },
+                foods: ['청정 호주산 안심 스테이크', '피시 앤 칩스', '플랫 화이트 커피'],
+                checklist: ['ETA 호주 비자', '선크림 & 모자', '돼지코 어댑터'],
+                itinerary: [
+                    { day: 1, title: '시드니 항구', desc: '시드니 도착 ➔ 록스 거리 산책 ➔ 오페라하우스 & 하버브릿지 야경' },
+                    { day: 2, title: '블루마운틴 대자연', desc: '블루마운틴 국립공원 ➔ 세자매봉 감상 ➔ 궤도열차 체험' },
+                    { day: 3, title: '해변과 동물원', desc: '타롱가 동물원 코알라 만나기 ➔ 본다이 비치 오션풀 피크닉' }
+                ]
+            },
+            {
+                id: 'cancun',
+                region: 'americas',
+                duration: 'long',
+                name: '칸쿤 (Cancun), 메세코',
+                tagline: '카리브해의 에메랄드빛 올인클루시브 럭셔리 파라다이스',
+                vibes: ['Resort', 'Activity', 'Nature'],
+                keywords: ['칸쿤', '멕시코', '카리브해', '올인클루시브', '세노떼', '치첸잇사', '신혼여행', '해변', '럭셔리'],
+                why: '카리브해를 품은 최고급 올인클루시브 리조트와 마야 유적지 치첸잇사, 신비로운 천연 우물 세노떼 탐험을 만납니다.',
+                spots: [
+                    { name: '익킬 세노떼 (Cenote)', desc: '마야 왕족들이 즐겼던 신비로운 천연 동굴 수영장' },
+                    { name: '치첸잇사 (Chichen Itza)', desc: '세계 7대 불가사의 중 하나인 거대한 마야 피라미드 유적' }
+                ],
+                flightTime: '경유 약 16~18시간',
+                currency: 'MXN / USD (1달러 ≈ 1,380원)',
+                bestSeason: '12월~4월 (건기)',
+                image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '160만원', hotel: '35만원/박(올인클루시브)', food: '포함', total: '약 330만원' },
+                foods: ['정통 멕시칸 타코 & 과카몰리', '마가리타 칵테일', '갓 잡은 시푸드'],
+                checklist: ['ESTA (미국 경유용)', '방수 카메라', '친환경 선크림'],
+                itinerary: [
+                    { day: 1, title: '카리브해 올인클루시브', desc: '칸쿤 도착 ➔ 올인클루시브 리조트 체크인 ➔ 칵테일과 함께 해변 휴식' },
+                    { day: 2, title: '마야 문명과 세노떼', desc: '치첸잇사 마야 피라미드 ➔ 신비로운 세노떼 동굴 수영' },
+                    { day: 3, title: '액티비티와 코코봉고', desc: '정글 보트 & 스노클링 ➔ 화려한 코코봉고 클럽 쇼 관람' }
+                ]
+            },
+
+            // --- Middle East & Others / 중동 및 기타 ---
+            {
+                id: 'dubai',
+                region: 'others',
+                duration: 'medium',
+                name: '두바이 (Dubai), 아랍에미리트',
+                tagline: '사막 위에 세워진 미래 도시! 부르즈 할리파와 사막 투어',
+                vibes: ['City', 'Activity', 'Resort'],
+                keywords: ['두바이', '중동', '부르즈할리파', '사막', '사막투어', '쇼핑몰', '럭셔리', '분수쇼', '미래'],
+                why: '세계 최고층 부르즈 할리파, 오프로드 사막 사파리 투어, 화려한 두바이 몰 분수 쇼 등 압도적 스케일을 자랑합니다.',
+                spots: [
+                    { name: '부르즈 할리파 (Burj Khalifa)', desc: '세계 최고 높이(828m)를 자랑하는 마천루 전망대' },
+                    { name: '사막 사파리 투어', desc: '붉은 사막 언덕을 달리는 4WD 듄배싱과 샌드보딩, 붉은 노을' }
+                ],
+                flightTime: '직항 약 9시간 30분',
+                currency: 'AED (1디르함 ≈ 370원)',
+                bestSeason: '11월~3월 (쾌적한 사막 날씨)',
+                image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '95만원', hotel: '20만원/박', food: '7만원/일', total: '약 190만원' },
+                foods: ['중동식 훔무스 & 피타 빵', '양고기 케밥', '대추야자(데이츠) 디저트'],
+                checklist: ['무비자 입국', '얇은 긴소매 옷(사막/에어컨)', '선글라스'],
+                itinerary: [
+                    { day: 1, title: '초고층 야경', desc: '두바이 도착 ➔ 두바이 몰 탐방 ➔ 부르즈 할리파 전망대 & 두바이 분수 쇼' },
+                    { day: 2, title: '사막의 모험', desc: '골드 수크 전통시장 ➔ 오후 붉은 사막 사파리 듄배싱 & 사막 캠프 바비큐' },
+                    { day: 3, title: '미래박물관과 귀국', desc: '두바이 미래박물관 ➔ 팜 주메이라 아틀란티스 감상 후 공항 이동' }
+                ]
+            },
+            {
+                id: 'cairo',
+                region: 'others',
+                duration: 'long',
+                name: '카이로 (Cairo), 이집트',
+                tagline: '인류 문명의 요람! 피라미드와 스핑크스, 나일강 크루즈',
+                vibes: ['Culture', 'Nature'],
+                keywords: ['이집트', '카이로', '피라미드', '스핑크스', '나일강', '역사', '버킷리스트', '중동', '사막'],
+                why: '기자의 대피라미드와 스핑크스, 이집트 박물관의 투탕카멘 황금마스크 등 평생 잊지 못할 버킷리스트 여행입니다.',
+                spots: [
+                    { name: '기자 피라미드 & 스핑크스', desc: '수천 년 동안 고대 문명을 지켜온 웅장한 피라미드 유적' },
+                    { name: '이집트 국립 박물관', desc: '투탕카멘 황금 유물과 고대 미이라가 소장된 보물창고' }
+                ],
+                flightTime: '직항 약 12시간',
+                currency: 'EGP (1파운드 ≈ 28원)',
+                bestSeason: '11월~2월 (선선한 사막 날씨)',
+                image: 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?auto=format&fit=crop&w=800&q=80',
+                cost: { flight: '130만원', hotel: '12만원/박', food: '4만원/일', total: '약 220만원' },
+                foods: ['코샤리(이집트 국민 국수)', '타메야(병아리콩 튀김)', '망고 주스'],
+                checklist: ['도착 비자($25)', '달러 현금', '사막용 먼지 마스크/스카프'],
+                itinerary: [
+                    { day: 1, title: '피라미드의 위엄', desc: '카이로 도착 ➔ 기자 피라미드 & 스핑크스 탐방 ➔ 낙타 타기 체험' },
+                    { day: 2, title: '박물관과 전통시장', desc: '이집트 박물관 투탕카멘 관람 ➔ 칸 엘 칼릴리 시장 쇼핑' },
+                    { day: 3, title: '나일강의 석양', desc: '나일강 펠루카 돛단배 경험 ➔ 나일강 크루즈 디너 후 공항 이동' }
+                ]
+            }
+        ];
+
+        // State variables
+        let currentVibes = [];
+        let currentCompanion = 'all';
+        let currentCategoryFilter = 'all';
+        let savedDestinations = JSON.parse(localStorage.getItem('tripGuide_saved') || '[]');
+
+        // Initialize Page
+        window.onload = function() {
+            document.getElementById('dbCounterText').innerText = `${destinationDatabase.length}개 명소 빅데이터 로딩됨`;
+            renderDestinations();
+            updateSavedBadge();
+        };
+
+        // Keyword Search Input Engine
+        function handleKeyupSearch() {
+            renderDestinations();
+        }
+
+        // Quick Tag Selector
+        function setKeyword(word) {
+            document.getElementById('customKeywords').value = word;
+            renderDestinations();
+        }
+
+        // Companion Selector Handler
+        function selectCompanion(type, el) {
+            currentCompanion = type;
+            document.querySelectorAll('.companion-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500/50', 'bg-indigo-600/20', 'text-indigo-300');
+                btn.classList.add('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
+            });
+            el.classList.remove('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
+            el.classList.add('border-indigo-500/50', 'bg-indigo-600/20', 'text-indigo-300');
+            renderDestinations();
+        }
+
+        // Vibe Selector Toggle Handler
+        function toggleVibe(vibe, el) {
+            if (currentVibes.includes(vibe)) {
+                currentVibes = currentVibes.filter(v => v !== vibe);
+                el.classList.remove('border-indigo-500/50', 'bg-indigo-600/20', 'text-indigo-300');
+                el.classList.add('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
+            } else {
+                currentVibes.push(vibe);
+                el.classList.remove('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
+                el.classList.add('border-indigo-500/50', 'bg-indigo-600/20', 'text-indigo-300');
+            }
+            renderDestinations();
+        }
+
+        // Reset Filters Function
+        function resetFilters() {
+            currentVibes = [];
+            currentCompanion = 'all';
+            currentCategoryFilter = 'all';
+            document.getElementById('customKeywords').value = '';
+            document.getElementById('durationSelect').value = 'all';
+            
+            document.querySelectorAll('.vibe-btn, .companion-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500/50', 'bg-indigo-600/20', 'text-indigo-300');
+                btn.classList.add('border-slate-700', 'bg-slate-900/60', 'text-slate-300');
+            });
+
+            document.querySelectorAll('.cat-filter-btn').forEach((btn, idx) => {
+                if(idx === 0) {
+                    btn.classList.add('bg-indigo-600', 'text-white');
+                    btn.classList.remove('bg-slate-800', 'text-slate-300');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            renderDestinations();
+        }
+
+        // Continent / Category Filter
+        function filterCategory(cat) {
+            currentCategoryFilter = cat;
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+            });
+            event.target.classList.remove('bg-slate-800', 'text-slate-300');
+            event.target.classList.add('bg-indigo-600', 'text-white');
+            renderDestinations();
+        }
+
+        // Real-time Dynamic Filtering & Search Engine
+        function renderDestinations() {
+            const container = document.getElementById('destinationsList');
+            container.innerHTML = '';
+
+            const keywordInput = document.getElementById('customKeywords').value.trim().toLowerCase();
+            const selectedDuration = document.getElementById('durationSelect').value;
+
+            let filtered = destinationDatabase.filter(item => {
+                // Category Filter (국내, 아시아, 유럽, 미주, 기타)
+                if (currentCategoryFilter !== 'all' && item.region !== currentCategoryFilter) {
+                    return false;
+                }
+
+                // Duration Filter
+                if (selectedDuration !== 'all' && item.duration !== selectedDuration) {
+                    return false;
+                }
+
+                // Vibe Filter (Any match if selected)
+                if (currentVibes.length > 0) {
+                    const hasVibe = item.vibes.some(v => currentVibes.includes(v));
+                    if (!hasVibe) return false;
+                }
+
+                // Keyword Search Match (In name, tagline, why, keywords array, or spots)
+                if (keywordInput !== '') {
+                    const searchTarget = (
+                        item.name + " " +
+                        item.tagline + " " +
+                        item.why + " " +
+                        item.keywords.join(" ") + " " +
+                        item.spots.map(s => s.name + " " + s.desc).join(" ")
+                    ).toLowerCase();
+
+                    if (!searchTarget.includes(keywordInput)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            document.getElementById('resultBadge').innerText = `${filtered.length}개 검색됨`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel p-12 rounded-2xl text-center space-y-4">
+                        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-slate-500 text-2xl mx-auto border border-slate-800">
+                            <i class="fa-solid fa-compass-drafting"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white">조건에 일치하는 여행지를 찾지 못했습니다.</h3>
+                        <p class="text-xs text-slate-400 max-w-md mx-auto">
+                            검색어 <span class="text-indigo-400 font-semibold">'${keywordInput}'</span> 및 선택 조건에 부합하는 장소가 없습니다. 다른 검색어를 입력하시거나 필터를 초기화해 보세요!
+                        </p>
+                        <button onclick="resetFilters()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg shadow-indigo-600/20">
+                            필터 및 검색어 초기화
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach((item, index) => {
+                const isSaved = savedDestinations.some(s => s.id === item.id);
+                const card = `
+                    <div class="glass-panel rounded-2xl overflow-hidden shadow-xl hover:border-slate-600 transition-all duration-300 flex flex-col md:flex-row group">
+                        <!-- Image Container -->
+                        <div class="md:w-2/5 h-60 md:h-auto relative overflow-hidden shrink-0">
+                            <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" onerror="this.src='https://placehold.co/800x600/1e293b/ffffff?text=${encodeURIComponent(item.name)}'">
+                            <span class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-[11px] font-bold px-3 py-1 rounded-full text-indigo-400 border border-indigo-500/30">
+                                추천순위 #${index + 1}
+                            </span>
+                            <button onclick="toggleSave('${item.id}')" class="absolute top-3 right-3 w-9 h-9 bg-slate-950/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-300 hover:text-amber-400 transition-colors border border-slate-700">
+                                <i class="${isSaved ? 'fa-solid text-amber-400' : 'fa-regular'} fa-bookmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Info Content -->
+                        <div class="p-6 md:w-3/5 flex flex-col justify-between space-y-4">
+                            <div>
+                                <div class="flex flex-wrap gap-1.5 mb-2">
+                                    ${item.vibes.map(v => `<span class="bg-indigo-500/10 text-indigo-300 text-[11px] font-medium px-2.5 py-0.5 rounded-md border border-indigo-500/20">#${v}</span>`).join('')}
+                                </div>
+                                
+                                <h3 class="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors">
+                                    ${item.name}
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-0.5">${item.tagline}</p>
+
+                                <p class="text-xs text-slate-300 leading-relaxed mt-3 bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                                    <strong class="text-indigo-300 font-semibold">AI 매칭 이유:</strong> ${item.why}
+                                </p>
+
+                                <div class="grid grid-cols-2 gap-2 mt-3 text-[11px] text-slate-400">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-plane text-indigo-400"></i> ${item.flightTime}
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-coins text-amber-400"></i> ${item.currency}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer Buttons -->
+                            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                                <span class="text-xs text-slate-400">예상 총비용: <strong class="text-pink-400 font-bold">${item.cost.total}</strong></span>
+                                <button onclick="openDetailModal('${item.id}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-1.5">
+                                    <span>상세 일정 및 비용</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // Open Detail Modal
+        function openDetailModal(id) {
+            const item = destinationDatabase.find(d => d.id === id);
+            if (!item) return;
+
+            document.getElementById('modalHeader').style.backgroundImage = `url('${item.image}')`;
+            document.getElementById('modalTitle').innerText = item.name;
+            document.getElementById('modalSubtitle').innerText = `${item.tagline} • 추천 여행적기: ${item.bestSeason}`;
+            
+            document.getElementById('modalVibes').innerHTML = item.vibes.map(v => 
+                `<span class="bg-indigo-600/80 backdrop-blur-md text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-md">#${v}</span>`
+            ).join('');
+
+            const itinContainer = document.getElementById('itineraryDays');
+            itinContainer.innerHTML = item.itinerary.map(day => `
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1">
+                    <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">DAY ${day.day} - ${day.title}</span>
+                    <p class="text-xs text-slate-200">${day.desc}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('costFlight').innerText = item.cost.flight;
+            document.getElementById('costHotel').innerText = item.cost.hotel;
+            document.getElementById('costFood').innerText = item.cost.food;
+            document.getElementById('costTotal').innerText = item.cost.total;
+
+            document.getElementById('foodList').innerHTML = item.foods.map(f => `<li>${f}</li>`).join('');
+            document.getElementById('checklistItems').innerHTML = item.checklist.map(c => `
+                <li class="flex items-center gap-2">
+                    <i class="fa-regular fa-square-check text-emerald-400"></i>
+                    <span>${c}</span>
+                </li>
+            `).join('');
+
+            switchModalTab('itinerary');
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        // Modal Tab Switcher
+        function switchModalTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tabContentItinerary').classList.add('hidden');
+            document.getElementById('tabContentCost').classList.add('hidden');
+            document.getElementById('tabContentPrep').classList.add('hidden');
+
+            if (tab === 'itinerary') {
+                document.getElementById('tabItinerary').classList.add('active');
+                document.getElementById('tabContentItinerary').classList.remove('hidden');
+            } else if (tab === 'cost') {
+                document.getElementById('tabCost').classList.add('active');
+                document.getElementById('tabContentCost').classList.remove('hidden');
+            } else if (tab === 'prep') {
+                document.getElementById('tabPrep').classList.add('active');
+                document.getElementById('tabContentPrep').classList.remove('hidden');
+            }
+        }
+
+        // Bookmark Toggle Functionality
+        function toggleSave(id) {
+            const index = savedDestinations.findIndex(s => s.id === id);
+            if (index > -1) {
+                savedDestinations.splice(index, 1);
+            } else {
+                const item = destinationDatabase.find(d => d.id === id);
+                if (item) savedDestinations.push(item);
+            }
+            localStorage.setItem('tripGuide_saved', JSON.stringify(savedDestinations));
+            updateSavedBadge();
+            renderDestinations();
+        }
+
+        function updateSavedBadge() {
+            const badge = document.getElementById('savedCountBadge');
+            if (savedDestinations.length > 0) {
+                badge.innerText = savedDestinations.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Saved Wishlist Modal Handler
+        function openSavedModal() {
+            const container = document.getElementById('savedListContainer');
+            container.innerHTML = '';
+
+            if (savedDestinations.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">아직 저장한 위시리스트 여행지가 없습니다.</p>`;
+            } else {
+                savedDestinations.forEach(item => {
+                    container.innerHTML += `
+                        <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <div class="flex items-center gap-3">
+                                <img src="${item.image}" class="w-12 h-12 rounded-lg object-cover">
+                                <div>
+                                    <h4 class="text-xs font-bold text-white">${item.name}</h4>
+                                    <span class="text-[10px] text-slate-400">${item.cost.total}</span>
+                                </div>
+                            </div>
+                            <button onclick="toggleSave('${item.id}'); openSavedModal();" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1">
+                                <i class="fa-solid fa-trash-can"></i> 삭제
+                            </button>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('savedModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // AI Form Handler Simulation
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 맞춤 매칭 알고리즘 검색 중...`;
+            btn.disabled = true;
+
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                renderDestinations();
+            }, 250);
+        }
+    </script>
+</body>
+</html>
